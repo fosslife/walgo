@@ -2,6 +2,10 @@ package main
 
 import (
 	"fmt"
+	"io"
+	"log"
+	"net/http"
+	"os"
 	"regexp"
 	"strings"
 
@@ -26,7 +30,7 @@ func main() {
 
 	c.OnScraped(func(r *colly.Response) {
 		for k, v := range links {
-			fmt.Println(k, v)
+			fetchAndSave(k, v)
 		}
 	})
 
@@ -36,4 +40,27 @@ func main() {
 
 	// c.Wait()
 	c.Visit("https://wallhaven.cc/random")
+}
+
+func fetchAndSave(filename string, url string) {
+	if _, err := os.Stat("./images"); os.IsNotExist(err) {
+		os.Mkdir("./images", os.ModePerm)
+	}
+	response, err := http.Get(url)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer response.Body.Close()
+
+	file, err := os.Create("./images/" + filename)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer file.Close()
+
+	_, err = io.Copy(file, response.Body)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println("File saved!", filename)
 }
